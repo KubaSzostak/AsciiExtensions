@@ -77,9 +77,42 @@ namespace System.Text.Ascii
             return (c >= first) && (c <= last);
         }
 
+        public static bool IsAscii(this char c)
+        {
+            return c.IsBetween(' ', '~');
+        }
+
+        public static bool IsAsciiLetter(this char c)
+        {
+            return c.IsBetween('a', 'z') || c.IsBetween('A', 'Z');
+        }
+
+        public static bool IsAsciiDigit(this char c)
+        {
+            return c.IsBetween('0', '9');
+        }
+
+        /// <summary>
+        /// Check if string represents the positive integers (whole numbers) 1, 2, 3, etc., and zero as well.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static bool IsNaturalNumber(this string s)
+        {
+            // https://en.wikipedia.org/wiki/Number#Natural_numbers
+            foreach (var c in s)
+            {
+                if (!IsAsciiDigit(c))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public static bool IsAlphaNumeric(this char c)
         {
-            return c.IsBetween('a', 'z') || c.IsBetween('A', 'Z') || c.IsBetween('0', '9');
+            return IsAsciiLetter(c) || IsAsciiDigit(c);
         }
 
         public static bool IsAlphaNumeric(this string s)
@@ -94,12 +127,106 @@ namespace System.Text.Ascii
             return true;
         }
         
+        public static bool IsValidDomain(this string domain)
+        {
+            // https://en.wikipedia.org/wiki/Domain_name#Domain_name_syntax
+
+            if (string.IsNullOrEmpty(domain))
+                return false;
+
+            if (domain.Length > 253)
+                return false;
+
+            var labels = domain.Split('.');
+            if (labels.Length < 2)
+                return false; // TODO: Rethink local top level domain
+
+            // https://stackoverflow.com/a/21872376/2524798
+            var tld = labels[labels.Length - 1];
+            if (tld.Length > 24)
+                return false;
+            if (tld.IsNaturalNumber())
+                return false;
+
+
+            foreach (var label in labels)
+            {
+                if (!IsValidDomainLabel(label))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool IsValidDomainLabel(this string label)
+        {
+            // https://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
+            // A domain name consists of one or more labels.
+            // Each label may contain from 1 to 63 octets.
+            // Each label is formed from the set of ASCII letters, 
+            // digits, and hyphens (a-z, A-Z, 0-9, -), but not starting or ending with a hyphen. 
+
+            if ((label.Length < 1) || (label.Length > 63))
+                return false;
+
+            if ((label[0] == '-') || label[label.Length - 1] == '-')
+                return false;
+
+            foreach (var ch in label)
+            {
+                if ((ch != '-') && !ch.IsAlphaNumeric())
+                    return false;
+            }
+            return true;
+        }
+
+        public static bool IsValidEmail(this string email)
+        {
+            //https://en.wikipedia.org/wiki/Email_address#Local-part
+
+            // The maximum total length of the local-part of an email address is 64 octets.
+            // The local-part of the email address may use any of these ASCII characters:
+            // - Latin letters A-Z, a-z
+            // - digits 0-9;
+            // - printable characters !#$%&'*+-/=?^_`{|}~;
+            // - dot., provided that it is not the first or last character unless quoted, 
+            //   and provided also that it does not appear consecutively unless quoted
+            //   (e.g.John..Doe@example.com is not allowed but "John..Doe"@example.com is allowed);
+            
+            if (string.IsNullOrEmpty(email))
+                return false;
+
+
+            var emailParts = email.Split('@');
+            if (emailParts.Length != 2)
+                return false;
+
+            if (!emailParts[1].IsValidDomain())
+                return false;
+
+            var localPart = emailParts[0];
+            if ((localPart.Length < 1) || (localPart.Length > 64))
+                return false;
+
+            if ((localPart[0] == '.') || (localPart[localPart.Length-1] == '.'))
+                return false;
+
+            if (localPart.Contains(".."))
+                return false;
+
+            const string specialChars = "!#$%&'*+-/=?^_`{|}~;";
+            foreach (var ch in localPart)
+            {
+                if ((ch != '.') && !ch.IsAlphaNumeric() && (specialChars.IndexOf(ch) < 0))
+                    return false;
+            }
+            return true;
+        }
 
         /// <summary>
         /// Converts characters non-ASCII to their ASCII equivalents. For example,
         /// accents are removed from accented characters. 
         /// </summary>
-        public static char ToAscii(this char c)
+        public static char ToAscii(this char c, UnknownAsciiCharacters unknown)
         {
             if (c.IsBetween(' ', '~'))
             {
@@ -1232,8 +1359,8 @@ namespace System.Text.Ascii
             }
             if (char.IsLetter(c))
             {
-                Debug.WriteLine("Letter character '{0}' ({0:X}) converted to 'X' character.", c);
-                return 'X';
+                Debug.WriteLine("Letter character '{0}' ({0:X}) converted to '{1}' character.", c, unknown.Letter);
+                return unknown.Letter;
             }
 
             // Numbers
@@ -1425,8 +1552,8 @@ namespace System.Text.Ascii
             }
             if (char.IsNumber(c) || char.IsDigit(c))
             {
-                Debug.WriteLine("Numeric character '{0}' ({0:X}) converted to '0' character.", c);
-                return '0';
+                Debug.WriteLine("Numeric character '{0}' ({0:X}) converted to '{1}' character.", c, unknown.Number);
+                return unknown.Number;
             }
 
             // Symbols and punctations
@@ -1585,23 +1712,35 @@ namespace System.Text.Ascii
             }
             if (char.IsPunctuation(c))
             {
-                Debug.WriteLine("Punctuation character '{0}' ({0:X}) converted to '.' character.", c);
-                return '.';
+                Debug.WriteLine("Punctuation character '{0}' ({0:X}) converted to '{1}' character.", c, unknown.Punctuation);
+                return unknown.Punctuation;
             }
             if (char.IsSymbol(c))
             {
-                Debug.WriteLine("Symbol character '{0}' ({0:X}) converted to '$' character.", c);
-                return '$';
+                Debug.WriteLine("Symbol character '{0}' ({0:X}) converted to '{1}' character.", c, unknown.Symbol);
+                return unknown.Symbol;
             }
 
             if (char.IsControl(c))
             {
-                Debug.WriteLine("Control character '{0}' ({0:X}) converted to '^' character.", c);
-                return '^';
+                Debug.WriteLine("Control character '{0}' ({0:X}) converted to '{1}' character.", c, unknown.Control);
+                return unknown.Control;
             }
 
-            return '_';
+            return unknown.Unknown;
+        }
 
+        public static char ToAscii(this char c, char unknownChar)
+        {
+            if (unknownChar == '_')
+                return ToAscii(c, UnknownAsciiCharacters.Underscore);
+            else
+                return ToAscii(c, new UnknownAsciiCharacters(unknownChar));
+        }
+
+        public static char ToAscii(this char c)
+        {
+            return ToAscii(c, UnknownAsciiCharacters.Default);
         }
 
         /// <summary>
@@ -1621,5 +1760,33 @@ namespace System.Text.Ascii
 
     }
 
+    public class UnknownAsciiCharacters
+    {
+        public UnknownAsciiCharacters(char unknown, char letter, char number, char punctuation, char symbol, char control)
+        {
+            this.Unknown = unknown;
+            this.Letter = letter;
+            this.Number = number;
+            this.Punctuation = punctuation;
+            this.Symbol = symbol;
+            this.Control = control;
+        }
+
+        public UnknownAsciiCharacters(char unknown) : this(unknown, unknown, unknown, unknown, unknown, unknown)
+        { }
+
+        public UnknownAsciiCharacters() : this('_', 'X', '0', '.', '$', '^')
+        { }
+
+        public char Unknown { get; private set; }
+        public char Letter { get; private set; }
+        public char Number { get; private set; }
+        public char Punctuation { get; private set; }
+        public char Symbol { get; private set; }
+        public char Control { get; private set; }
+
+        public static readonly UnknownAsciiCharacters Default = new UnknownAsciiCharacters();
+        public static readonly UnknownAsciiCharacters Underscore = new UnknownAsciiCharacters('_');
+    }
 
 }

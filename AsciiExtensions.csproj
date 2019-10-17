@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
@@ -8,10 +8,16 @@
     <Company />
     <Copyright>This is a derivative work.  The logic of this function comes from a switch statement found inside the Lucene.Net library adapted by andyraddatz.</Copyright>
     <PackageLicenseExpression></PackageLicenseExpression>
-    <PackageProjectUrl></PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/kubaszostak/AsciiExtensions</PackageProjectUrl>
     <RepositoryUrl>https://github.com/kubaszostak/AsciiExtensions</RepositoryUrl>
     <PackageTags>ASCII</PackageTags>
-    <Description>ASCII extensions for .NET</Description>
+    <Description>ASCII extensions for .NET
+
+Usage
+-----
+var a = "München ist eine “übergröße” Stadt".ToAscii();
+//  a = "Munchen ist eine "ubergrose" Stadt"    
+</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
