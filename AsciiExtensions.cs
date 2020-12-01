@@ -1595,6 +1595,7 @@ namespace System.Text.Ascii
                 case '\u2773': // ❳  [LIGHT RIGHT TORTOISE SHELL BRACKET ORNAMENT]
                 case '\uFF3D': // ］  [FULLWIDTH RIGHT SQUARE BRACKET]
                     return ']';
+
                 case '\u207D': // ⁽  [SUPERSCRIPT LEFT PARENTHESIS]
                 case '\u208D': // ₍  [SUBSCRIPT LEFT PARENTHESIS]
                 case '\u2768': // ❨  [MEDIUM LEFT PARENTHESIS ORNAMENT]

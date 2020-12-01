@@ -5,12 +5,25 @@ ASCII extensions for .NET
 ## Instalation
 
 Add *AsciiExtensions.cs* or *AsciiExtensions.dll* to your Visual Studio project.
+Add *using System.Text.Ascii;* to your source file.
 
 ## Usage
 
 ```csharp
 var a = "München ist eine “übergröße” Stadt".ToAscii();
-//  a = "Munchen ist eine "ubergrose" Stadt"    
+//  a : "Munchen ist eine "ubergrose" Stadt"    
+
+var b = "abc123".IsAlphaNumeric();
+//  b : true
+
+var c = "123".IsNaturalNumber();
+//  c : true
+
+var d = "docs.microsoft.com".IsValidDomain();
+//  d : true
+
+var e = "qusho@gmail.com".IsValidEmail();
+//  d : true
 ```
 
 ## Credits
